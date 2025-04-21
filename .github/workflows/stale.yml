@@ -1,0 +1,41 @@
+name: "Close stale issues and PRs"
+on:
+  workflow_call:
+    inputs:
+      days-before-stale:
+        required: false
+        type: number
+        default: 60
+        description: "Days of inactivity before an issue becomes stale"
+      days-before-close:
+        required: false
+        type: number
+        default: 5
+        description: "Days of inactivity before a stale issue is closed"
+      stale-issue-message:
+        required: false
+        type: string
+        default: "This has been marked stale because it has been open for 60 days with no activity. If you do not remove the 'stale' label or comment, this will be closed in 5 days."
+        description: "Message to post on stale issues"
+      exempt-issue-labels:
+        required: false
+        type: string
+        default: "work-in-progress, in-progress, in-review, help-wanted, blocked, wip, depfu, dependabot, dependencies"
+        description: "Comma-separated list of labels that exempt issues from being marked as stale"
+      exempt-draft-pr:
+        required: false
+        type: boolean
+        default: true
+        description: "Whether to exempt draft PRs from being marked as stale"
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          stale-issue-message: ${{ inputs.stale-issue-message }}
+          days-before-stale: ${{ inputs.days-before-stale }}
+          days-before-close: ${{ inputs.days-before-close }}
+          exempt-issue-labels: ${{ inputs.exempt-issue-labels }}
+          exempt-draft-pr: ${{ inputs.exempt-draft-pr }}
