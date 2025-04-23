@@ -3,7 +3,7 @@
 ## Usage
 
 ```yml
-name: Handle stale issues
+name: Handle stale issues and PRs
 
 on:
   schedule:
@@ -11,5 +11,5 @@ on:
 
 jobs:
   stale:
-    uses: RedHatInsights/shared-workflows/.github/workflows/stale.yaml@master
+    uses: RedHatInsights/shared-workflows/.github/workflows/stale.yml@master
 ```
