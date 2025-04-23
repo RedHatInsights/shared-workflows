@@ -1,0 +1,19 @@
+name: Example Reusable Workflow
+on:
+  workflow_call:
+    # Define any inputs or secrets here if needed
+    inputs:
+      example-input:
+        required: false
+        type: string
+        default: "default value"
+    secrets:
+      example-secret:
+        required: false
+
+jobs:
+  shared-job:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: echo "Running shared workflow"
