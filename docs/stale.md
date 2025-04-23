@@ -1,5 +1,7 @@
 # Stale
 
+## Usage
+
 ```yml
 name: Handle stale issues
 
@@ -9,5 +11,5 @@ on:
 
 jobs:
   stale:
-    uses: RedHatInsights/shared-workflows/.github/workflows/stale.yaml@main
+    uses: RedHatInsights/shared-workflows/.github/workflows/stale.yaml@master
 ```
