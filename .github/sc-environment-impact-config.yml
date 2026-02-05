@@ -1,0 +1,182 @@
+# SC Environment Impact Assessment Configuration
+# This file defines patterns for detecting changes that may impact SC Environment deployments
+#
+# Each pattern includes:
+#   - paths: File glob patterns to match (optional)
+#   - content_patterns: Regex patterns to match in file diffs (optional)
+#   - impact_level: none, low, medium, high, critical
+#   - description: Human-readable description
+#   - recommendation: Guidance for developers (optional)
+
+patterns:
+  # Database schema changes
+  database_migrations:
+    paths:
+      - "migrations/versions/**/*.py"
+      - "migrations/**/*.sql"
+      - "db/migrate/**/*.rb"
+    impact_level: high
+    description: "Database migration detected"
+    recommendation: "Review migration for SC Environment compatibility and deployment timing. Ensure migration is idempotent and can be rolled back safely."
+
+  # OpenShift/Kubernetes deployment configuration
+  clowdapp_config:
+    paths:
+      - "deploy/clowdapp.yml"
+      - "deploy/*.yml"
+      - "deploy/*.yaml"
+    impact_level: high
+    description: "ClowdApp configuration change"
+    recommendation: "Verify all resource limits, environment variables, and dependencies are compatible with SC Environment. Check for any public cloud-specific features."
+
+  # Kessel authorization service (may not be in SC Environment)
+  kessel_integration:
+    paths:
+      - "**/*kessel*"
+      - "**/kessel.py"
+    content_patterns:
+      - "kessel"
+      - "KESSEL"
+      - "kessel\\.inventory"
+      - "kessel\\.rbac"
+    impact_level: critical
+    description: "Kessel integration change detected"
+    recommendation: "⚠️ CRITICAL: Kessel is not be available in SC Environment. All Kessel-dependent features must have fallback behavior."
+
+  # AWS S3 Storage
+  aws_s3:
+    content_patterns:
+      - "S3.*[Bb]ucket"
+      - "aws.*s3"
+      - "s3\\.(get|put|delete|list|upload|download)"
+      - "boto3.*['\"]s3['\"]"
+      - "S3_.*BUCKET"
+      - "s3://[a-zA-Z0-9-]+"
+      - "amazonaws\\.com.*s3"
+    impact_level: high
+    description: "AWS S3 integration change detected"
+    recommendation: "Verify S3 bucket names, regions, and IAM permissions are configurable and available in the SC Environment."
+
+  # AWS RDS Database
+  aws_rds:
+    content_patterns:
+      - "\\bRDS\\b"
+      - "aws.*rds"
+      - "\\baurora\\b"
+      - "DB_HOST.*amazonaws"
+      - "rds\\.amazonaws\\.com"
+    impact_level: high
+    description: "AWS RDS configuration change detected"
+    recommendation: "Ensure RDS databases are available in the SC Environment."
+
+  # AWS ElastiCache (Redis/Memcached)
+  aws_elasticache:
+    content_patterns:
+      - "elasticache"
+      - "redis.*amazonaws"
+      - "cache\\..*\\.amazonaws"
+      - "REDIS.*HOST.*amazonaws"
+    impact_level: medium
+    description: "AWS ElastiCache configuration change detected"
+    recommendation: "Verify ElastiCache cluster endpoints are configured for SC Environment region. Check node types availability in SC Environment."
+
+  # Secrets and credentials management
+  secrets_management:
+    content_patterns:
+      - "secretRef:"
+      - "secretName:"
+      - "secretKeyRef:"
+      - "AWS.*SECRET"
+      - "valueFrom:\\s*secretKeyRef"
+    impact_level: medium
+    description: "Secrets configuration change detected"
+    recommendation: "Ensure all secrets are created in SC Environment secret store. Verify secret names match or are configurable across environments."
+
+  # Kafka topic configuration
+  kafka_topics:
+    content_patterns:
+      - "topicName:"
+      - "KAFKA.*TOPIC"
+      - "kafkaTopics:"
+      - "kafka.*topic.*create"
+    impact_level: medium
+    description: "Kafka topic configuration change detected"
+    recommendation: "New or modified Kafka topics may need to be created in SC Environment Kafka cluster."
+
+  # Service dependencies
+  service_dependencies:
+    paths:
+      - "deploy/clowdapp.yml"
+    content_patterns:
+      - "dependencies:"
+      - "- [a-z-]+"  # New dependency entry
+    impact_level: medium
+    description: "Service dependency change detected"
+    recommendation: "Verify that dependent services are available and deployed in SC Environment."
+
+  # Container image references
+  # DISABLED. Not clear this would ever need to fire or would be useful
+  #  container_images:
+  #    content_patterns:
+  #      - "image:.*registry"
+  #      - "quay\\.io"
+  #      - "docker\\.io"
+  #      - "registry\\.access\\.redhat\\.com"
+  #    impact_level: low
+  #    description: "Container image reference change detected"
+  #    recommendation: "Verify container images are mirrored to SC Environment-accessible registry. Check image pull secrets are configured."
+
+  # External API endpoints
+  #  external_endpoints:
+  #    content_patterns:
+  #      - "https?://(?!github\\.com|localhost|127\\.0\\.0\\.1)"
+  #      - "api\\..*\\.com"
+  #      - "endpoint.*http"
+  #    impact_level: low
+  #    description: "External endpoint reference detected"
+  #    recommendation: "Verify external APIs are accessible from SC Environment network. Check for VPC endpoints or proxy requirements."
+
+  # Certificate and TLS configuration
+  # tls_certificates:
+  #   content_patterns:
+  #     - "tls:"
+  #     - "certificate"
+  #     - "SSL.*MODE"
+  #     - "CERT.*PATH"
+  #   impact_level: low
+  #   description: "TLS/Certificate configuration change detected"
+  #   recommendation: "Ensure certificates are valid for SC Environment. Check certificate authority trust chains."
+
+  # Environment-specific configuration
+  environment_config:
+    content_patterns:
+      - "ENV_NAME"
+      - "ENVIRONMENT"
+      - "production.*config"
+      - "stage.*config"
+    impact_level: low
+    description: "Environment configuration change detected"
+    recommendation: "Review environment-specific settings to ensure SC Environment is properly configured."
+
+  # Feature flags
+  feature_flags:
+    content_patterns:
+      - "UNLEASH"
+      - "feature.*flag"
+      - "BYPASS_"
+      - "ENABLE_.*FEATURE"
+    impact_level: low
+    description: "Feature flag change detected"
+    recommendation: "Verify feature flags are properly configured for SC Environment. Test bypass options for services not available in SC Environment."
+
+# Optional: Configure which impact levels should trigger notifications
+notifications:
+  slack_webhook: ""  # Optional Slack webhook for critical/high impact PRs
+  email_recipients: []  # Optional email list for notifications
+
+# Optional: Team-specific settings
+# TODO: Curreently we do not have a team configured for ROSA Core
+# teams:
+#   sc_environment:
+#     github_team: "sc-environment-team"  # GitHub team to tag on high/critical impact PRs
+#     required_reviewers: []  # Additional required reviewers for high impact changes

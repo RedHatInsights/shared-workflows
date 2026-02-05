@@ -1,0 +1,114 @@
+name: SC Environment Impact Assessment
+
+on:
+  workflow_call:
+    inputs:
+      config-path:
+        description: 'Path to custom config file in the calling repo (optional)'
+        required: false
+        type: string
+        default: '.github/sc-environment-impact-config.yml'
+
+# Caller workflows must set these permissions themselves --
+# reusable workflows do not inherit permissions from here.
+# This block applies only if the workflow is run directly.
+permissions:
+  pull-requests: write
+  issues: write
+  contents: read
+
+jobs:
+  assess-sc-environment-impact:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout calling repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout shared-workflows repo (for scripts and default config)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/shared-workflows
+          path: _sc_check_tools
+          ref: main
+
+      - name: Fetch base branch
+        run: |
+          git fetch origin ${{ github.base_ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install PyYAML
+
+      - name: Run SC Environment impact analysis
+        id: impact_analysis
+        run: |
+          SCRIPT_PATH="_sc_check_tools/.github/scripts/sc_environment_impact_check.py"
+
+          # Use config from calling repo if it exists, otherwise use shared default
+          CONFIG_PATH="${{ inputs.config-path }}"
+          if [ -f "$CONFIG_PATH" ]; then
+            CONFIG_ARG="--config $CONFIG_PATH"
+          elif [ -f "_sc_check_tools/.github/sc-environment-impact-config.yml" ]; then
+            CONFIG_ARG="--config _sc_check_tools/.github/sc-environment-impact-config.yml"
+          else
+            CONFIG_ARG=""
+          fi
+
+          python "$SCRIPT_PATH" \
+            --base-ref origin/${{ github.base_ref }} \
+            --head-ref ${{ github.sha }} \
+            --pr-number ${{ github.event.pull_request.number }} \
+            --output-format github \
+            $CONFIG_ARG
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const comment = fs.readFileSync('/tmp/sc-environment-impact-comment.md', 'utf8');
+
+            // Find existing comment from this workflow
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('<!-- sc-environment-impact-check -->')
+            );
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
+
+      - name: Upload detailed report
+        uses: actions/upload-artifact@v4
+        with:
+          name: sc-environment-impact-report
+          path: /tmp/sc-environment-impact-report.json
+          retention-days: 30
