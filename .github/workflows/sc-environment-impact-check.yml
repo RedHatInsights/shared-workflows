@@ -26,12 +26,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Checkout shared-workflows repo (for scripts and default config)
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/shared-workflows
-          path: _sc_check_tools
-          ref: main
+      - name: Fetch shared scripts and default config
+        run: |
+          mkdir -p _sc_check_tools
+          curl -sfL "https://raw.githubusercontent.com/${{ github.repository_owner }}/shared-workflows/main/.github/scripts/sc_environment_impact_check.py" \
+            -o _sc_check_tools/sc_environment_impact_check.py
 
       - name: Fetch base branch
         run: |
@@ -49,14 +48,14 @@ jobs:
       - name: Run SC Environment impact analysis
         id: impact_analysis
         run: |
-          SCRIPT_PATH="_sc_check_tools/.github/scripts/sc_environment_impact_check.py"
+          SCRIPT_PATH="_sc_check_tools/sc_environment_impact_check.py"
 
           # Use config from calling repo if it exists, otherwise use shared default
           CONFIG_PATH="${{ inputs.config-path }}"
           if [ -f "$CONFIG_PATH" ]; then
             CONFIG_ARG="--config $CONFIG_PATH"
-          elif [ -f "_sc_check_tools/.github/sc-environment-impact-config.yml" ]; then
-            CONFIG_ARG="--config _sc_check_tools/.github/sc-environment-impact-config.yml"
+          elif [ -f "_sc_check_tools/sc-environment-impact-default-config.yml" ]; then
+            CONFIG_ARG="--config _sc_check_tools/sc-environment-impact-default-config.yml"
           else
             CONFIG_ARG=""
           fi
