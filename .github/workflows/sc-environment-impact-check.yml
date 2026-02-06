@@ -31,7 +31,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/shared-workflows
           path: _sc_check_tools
-          ref: main
+          ref: master 
 
       - name: Fetch base branch
         run: |
