@@ -235,13 +235,35 @@ class SCEnvironmentImpactChecker:
         from fnmatch import fnmatch
         return any(fnmatch(file_path, pattern) for pattern in patterns)
 
-    def check_content_patterns(self, content: str, patterns: List[str]) -> List[str]:
-        """Check if content matches any regex patterns, return matches"""
+    def check_content_patterns(self, diff_content: str, patterns: List[str]) -> List[Dict]:
+        """Check if diff content matches any regex patterns, return matches with line numbers"""
         matches = []
-        for pattern in patterns:
-            found = re.findall(pattern, content, re.IGNORECASE | re.MULTILINE)
-            if found:
-                matches.extend(found)
+        current_line = 0
+
+        for diff_line in diff_content.split('\n'):
+            # Parse hunk header for new file line number
+            hunk_match = re.match(r'^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@', diff_line)
+            if hunk_match:
+                current_line = int(hunk_match.group(1))
+                continue
+
+            if diff_line.startswith('+') and not diff_line.startswith('+++'):
+                line_content = diff_line[1:]
+                for pattern in patterns:
+                    found = re.findall(pattern, line_content, re.IGNORECASE)
+                    for match_text in found:
+                        matches.append({
+                            'pattern': match_text,
+                            'line_number': current_line,
+                        })
+                current_line += 1
+            elif diff_line.startswith('-') or diff_line.startswith('---'):
+                # Removed lines don't increment the new file line counter
+                continue
+            elif not diff_line.startswith('\\'):
+                # Context line
+                current_line += 1
+
         return matches
 
     def analyze_file(self, file_path: str, base_ref: str, head_ref: str):
@@ -261,7 +283,18 @@ class SCEnvironmentImpactChecker:
                 if not matches:
                     continue
 
-                details = [f"Found pattern: {m}" for m in set(matches[:5])]  # Limit to 5 examples
+                # Deduplicate by (pattern, line_number) and limit to 5 examples
+                seen = set()
+                details = []
+                for m in matches:
+                    key = (m['pattern'], m['line_number'])
+                    if key not in seen:
+                        seen.add(key)
+                        details.append(
+                            f"Found `{m['pattern']}` in `{file_path}` at line {m['line_number']}"
+                        )
+                    if len(details) >= 5:
+                        break
             else:
                 details = []
 
@@ -284,17 +317,9 @@ class SCEnvironmentImpactChecker:
             print("No changed files detected")
             return self.report
 
-        # Exclude the check tool's own files to avoid self-detection
-        excluded_patterns = [
-            '.github/scripts/sc_environment_impact_check.py',
-            '.github/sc-environment-impact-config.yml',
-            '.github/workflows/sc-environment-impact-check.yml',
-            '.github/scripts/SC_CHECK_README.md'
-        ]
-
         for file_path in changed_files:
-            # Skip files that are part of the check tool itself
-            if any(file_path == pattern or file_path.endswith(pattern) for pattern in excluded_patterns):
+            # Skip all files in the .github directory
+            if file_path.startswith('.github/') or file_path == '.github':
                 continue
             self.analyze_file(file_path, base_ref, head_ref)
 
