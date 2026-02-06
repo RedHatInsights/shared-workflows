@@ -328,7 +328,7 @@ class SCEnvironmentImpactChecker:
 
     def format_markdown(self, pr_number: Optional[int] = None) -> str:
         """Format report as GitHub-flavored markdown"""
-        impact_emoji = {
+        impact_indicator = {
             ImpactLevel.CRITICAL: "🔴",
             ImpactLevel.HIGH: "🟠",
             ImpactLevel.MEDIUM: "🟡",
@@ -336,22 +336,21 @@ class SCEnvironmentImpactChecker:
             ImpactLevel.NONE: "⚪"
         }
 
-        # Overall impact
-        emoji = impact_emoji[self.report.overall_impact]
+        indicator = impact_indicator[self.report.overall_impact]
         lines = [
             "<!-- sc-environment-impact-check -->",
-            "## 🏛️ SC Environment Impact Assessment",
+            "## SC Environment Impact Assessment",
             "",
-            f"**Overall Impact:** {emoji} **{self.report.overall_impact.value.upper()}**",
+            f"**Overall Impact:** {indicator} **{self.report.overall_impact.value.upper()}**",
             "",
         ]
 
         if self.report.overall_impact == ImpactLevel.NONE:
             lines += [
-                "✅ No SC Environment-specific impacts detected in this PR.",
+                "No SC Environment-specific impacts detected in this PR.",
                 "",
                 "<details>",
-                "<summary>What we checked</summary>",
+                "<summary>What was checked</summary>",
                 "",
                 "This PR was automatically scanned for:",
                 "- Database migrations",
@@ -365,27 +364,34 @@ class SCEnvironmentImpactChecker:
             ]
             return "\n".join(lines)
 
+        # Build the detailed report inside a dropdown
+        lines += [
+            "<details>",
+            "<summary>View full report</summary>",
+            "",
+        ]
+
         # Summary
         if self.report.summary["total_items"] > 0:
             lines += [
-                "### 📊 Summary",
+                "### Summary",
                 "",
                 f"- **Total Issues:** {self.report.summary['total_items']}",
             ]
 
             if self.report.summary['critical'] > 0:
-                lines.append(f"- 🔴 Critical: {self.report.summary['critical']}")
+                lines.append(f"- {impact_indicator[ImpactLevel.CRITICAL]} Critical: {self.report.summary['critical']}")
             if self.report.summary['high'] > 0:
-                lines.append(f"- 🟠 High: {self.report.summary['high']}")
+                lines.append(f"- {impact_indicator[ImpactLevel.HIGH]} High: {self.report.summary['high']}")
             if self.report.summary['medium'] > 0:
-                lines.append(f"- 🟡 Medium: {self.report.summary['medium']}")
+                lines.append(f"- {impact_indicator[ImpactLevel.MEDIUM]} Medium: {self.report.summary['medium']}")
             if self.report.summary['low'] > 0:
-                lines.append(f"- 🟢 Low: {self.report.summary['low']}")
+                lines.append(f"- {impact_indicator[ImpactLevel.LOW]} Low: {self.report.summary['low']}")
 
             lines.append("")
 
         # Detailed findings
-        lines += ["### 🔍 Detailed Findings", ""]
+        lines += ["### Detailed Findings", ""]
 
         # Group by impact level
         by_level = {}
@@ -398,7 +404,7 @@ class SCEnvironmentImpactChecker:
                 continue
 
             lines += [
-                f"#### {impact_emoji[level]} {level.value.upper()} Impact",
+                f"#### {impact_indicator[level]} {level.value.upper()} Impact",
                 "",
             ]
 
@@ -415,13 +421,13 @@ class SCEnvironmentImpactChecker:
                         lines.append(f"  - {detail}")
 
                 if item.recommendation:
-                    lines.append(f"- ⚠️ **Recommendation:** {item.recommendation}")
+                    lines.append(f"- **Recommendation:** {item.recommendation}")
 
                 lines.append("")
 
         # Action items
         lines += [
-            "### ✅ Required Actions",
+            "### Required Actions",
             "",
             "- [ ] Review all findings above",
             "- [ ] Verify SC Environment compatibility for all detected changes",
@@ -430,8 +436,12 @@ class SCEnvironmentImpactChecker:
             "",
         ]
 
+        # Close the details dropdown
+        lines.append("</details>")
+
         # Footer
         lines += [
+            "",
             "---",
             "*This assessment was automatically generated. Please review carefully and consult with the ROSA Core team for critical/high impact changes.*",
         ]
