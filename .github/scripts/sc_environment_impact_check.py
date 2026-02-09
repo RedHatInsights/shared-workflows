@@ -8,9 +8,11 @@ Configurable via sc-environment-impact-config.yml for reuse across repositories.
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
+import urllib.request
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 from functools import total_ordering
@@ -448,6 +450,85 @@ class SCEnvironmentImpactChecker:
 
         return "\n".join(lines)
 
+    def send_slack_notification(self, webhook_url: str, repo_url: str, pr_number: int):
+        """Send a Slack notification with impact findings"""
+        if self.report.overall_impact == ImpactLevel.NONE:
+            return
+
+        impact_emoji = {
+            ImpactLevel.CRITICAL: ":red_circle:",
+            ImpactLevel.HIGH: ":large_orange_circle:",
+            ImpactLevel.MEDIUM: ":large_yellow_circle:",
+            ImpactLevel.LOW: ":large_green_circle:",
+        }
+
+        pr_link = f"{repo_url}/pull/{pr_number}"
+
+        # Collect unique categories with their highest impact level
+        categories: Dict[str, ImpactLevel] = {}
+        for item in self.report.items:
+            existing = categories.get(item.category)
+            if existing is None or item.impact_level > existing:
+                categories[item.category] = item.impact_level
+
+        category_lines = []
+        for cat, level in sorted(categories.items(), key=lambda x: x[1], reverse=True):
+            label = cat.replace("_", " ").title()
+            category_lines.append(f"{impact_emoji.get(level, ':white_circle:')} {label} — *{level.value.upper()}*")
+
+        overall_emoji = impact_emoji.get(self.report.overall_impact, ":white_circle:")
+
+        blocks = [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "SC Environment Impact Assessment",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Pull Request:*\n<{pr_link}|#{pr_number}>",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Overall Impact:*\n{overall_emoji} {self.report.overall_impact.value.upper()}",
+                    },
+                ],
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Detected Categories:*\n" + "\n".join(category_lines),
+                },
+            },
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "View Pull Request"},
+                        "url": pr_link,
+                    }
+                ],
+            },
+        ]
+
+        payload = json.dumps({"blocks": blocks}).encode("utf-8")
+        req = urllib.request.Request(
+            webhook_url,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            urllib.request.urlopen(req)
+        except Exception as e:
+            print(f"Failed to send Slack notification: {e}", file=sys.stderr)
+
 
 def main():
     parser = argparse.ArgumentParser(description="Assess SC Environment impact of code changes")
@@ -494,6 +575,12 @@ def main():
         if args.output_format == "github":
             with open("/tmp/sc-environment-impact-comment.md", "w") as f:
                 f.write(markdown)
+
+    # Send Slack notification if webhook is provided via environment
+    slack_webhook = os.environ.get("SC_ASSESSOR_SLACK_URL")
+    repo_url = os.environ.get("SC_ASSESSOR_REPO_URL")
+    if slack_webhook and args.pr_number and repo_url:
+        checker.send_slack_notification(slack_webhook, repo_url, args.pr_number)
 
     # Fail if threshold exceeded
     if args.fail_on:
