@@ -8,6 +8,10 @@ on:
         required: false
         type: string
         default: '.github/sc-environment-impact-config.yml'
+    secrets:
+      SC_ASSESSOR_SLACK_URL:
+        description: 'Slack webhook URL for impact notifications'
+        required: false
 
 # Caller workflows must set these permissions themselves --
 # reusable workflows do not inherit permissions from here.
@@ -48,6 +52,9 @@ jobs:
 
       - name: Run SC Environment impact analysis
         id: impact_analysis
+        env:
+          SC_ASSESSOR_SLACK_URL: ${{ secrets.SC_ASSESSOR_SLACK_URL }}
+          SC_ASSESSOR_REPO_URL: ${{ github.server_url }}/${{ github.repository }}
         run: |
           SCRIPT_PATH="_sc_check_tools/.github/scripts/sc_environment_impact_check.py"
 
