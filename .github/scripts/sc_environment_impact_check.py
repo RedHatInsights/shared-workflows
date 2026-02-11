@@ -12,6 +12,7 @@ import os
 import re
 import subprocess
 import sys
+import urllib.error
 import urllib.request
 from dataclasses import dataclass, field, asdict
 from enum import Enum
@@ -452,7 +453,12 @@ class SCEnvironmentImpactChecker:
 
     def send_slack_notification(self, webhook_url: str, repo_url: str, pr_number: int):
         """Send a Slack notification with impact findings"""
+        print(f"[slack-debug] send_slack_notification called: overall_impact={self.report.overall_impact.value}, "
+              f"pr_number={pr_number}, repo_url={repo_url}", file=sys.stderr)
+        print(f"[slack-debug] webhook_url present: {bool(webhook_url)}, length: {len(webhook_url) if webhook_url else 0}", file=sys.stderr)
+
         if self.report.overall_impact == ImpactLevel.NONE:
+            print("[slack-debug] Skipping Slack notification: overall impact is NONE", file=sys.stderr)
             return
 
         impact_emoji = {
@@ -463,18 +469,8 @@ class SCEnvironmentImpactChecker:
         }
 
         pr_link = f"{repo_url}/pull/{pr_number}"
-
-        # Collect unique categories with their highest impact level
-        categories: Dict[str, ImpactLevel] = {}
-        for item in self.report.items:
-            existing = categories.get(item.category)
-            if existing is None or item.impact_level > existing:
-                categories[item.category] = item.impact_level
-
-        category_lines = []
-        for cat, level in sorted(categories.items(), key=lambda x: x[1], reverse=True):
-            label = cat.replace("_", " ").title()
-            category_lines.append(f"{impact_emoji.get(level, ':white_circle:')} {label} — *{level.value.upper()}*")
+        # Extract repo name (e.g. "org/repo") from the URL
+        repo_name = "/".join(repo_url.rstrip("/").split("/")[-2:])
 
         overall_emoji = impact_emoji.get(self.report.overall_impact, ":white_circle:")
 
@@ -491,6 +487,10 @@ class SCEnvironmentImpactChecker:
                 "fields": [
                     {
                         "type": "mrkdwn",
+                        "text": f"*Repository:*\n{repo_name}",
+                    },
+                    {
+                        "type": "mrkdwn",
                         "text": f"*Pull Request:*\n<{pr_link}|#{pr_number}>",
                     },
                     {
@@ -498,13 +498,6 @@ class SCEnvironmentImpactChecker:
                         "text": f"*Overall Impact:*\n{overall_emoji} {self.report.overall_impact.value.upper()}",
                     },
                 ],
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*Detected Categories:*\n" + "\n".join(category_lines),
-                },
             },
             {
                 "type": "actions",
@@ -518,16 +511,25 @@ class SCEnvironmentImpactChecker:
             },
         ]
 
-        payload = json.dumps({"blocks": blocks}).encode("utf-8")
+        payload_dict = {"blocks": blocks}
+        payload = json.dumps(payload_dict).encode("utf-8")
+        print(f"[slack-debug] Sending payload ({len(payload)} bytes) to webhook", file=sys.stderr)
+        print(f"[slack-debug] Payload: {json.dumps(payload_dict, indent=2)}", file=sys.stderr)
+
         req = urllib.request.Request(
             webhook_url,
             data=payload,
             headers={"Content-Type": "application/json"},
         )
         try:
-            urllib.request.urlopen(req)
+            resp = urllib.request.urlopen(req)
+            resp_body = resp.read().decode("utf-8", errors="replace")
+            print(f"[slack-debug] Slack response: status={resp.status}, body={resp_body!r}", file=sys.stderr)
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode("utf-8", errors="replace") if e.fp else "no body"
+            print(f"[slack-debug] Slack HTTP error: status={e.code}, reason={e.reason}, body={error_body!r}", file=sys.stderr)
         except Exception as e:
-            print(f"Failed to send Slack notification: {e}", file=sys.stderr)
+            print(f"[slack-debug] Slack request failed: {type(e).__name__}: {e}", file=sys.stderr)
 
 
 def main():
@@ -579,8 +581,20 @@ def main():
     # Send Slack notification if webhook is provided via environment
     slack_webhook = os.environ.get("SC_ASSESSOR_SLACK_URL")
     repo_url = os.environ.get("SC_ASSESSOR_REPO_URL")
+    print(f"[slack-debug] Environment check: SC_ASSESSOR_SLACK_URL={'set' if slack_webhook else 'NOT SET'}, "
+          f"SC_ASSESSOR_REPO_URL={'set (' + repo_url + ')' if repo_url else 'NOT SET'}, "
+          f"pr_number={args.pr_number}", file=sys.stderr)
     if slack_webhook and args.pr_number and repo_url:
         checker.send_slack_notification(slack_webhook, repo_url, args.pr_number)
+    else:
+        missing = []
+        if not slack_webhook:
+            missing.append("SC_ASSESSOR_SLACK_URL")
+        if not repo_url:
+            missing.append("SC_ASSESSOR_REPO_URL")
+        if not args.pr_number:
+            missing.append("--pr-number")
+        print(f"[slack-debug] Skipping Slack notification: missing {', '.join(missing)}", file=sys.stderr)
 
     # Fail if threshold exceeded
     if args.fail_on:
