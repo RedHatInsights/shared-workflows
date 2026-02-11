@@ -18,7 +18,6 @@ on:
 # This block applies only if the workflow is run directly.
 permissions:
   pull-requests: write
-  issues: write
   contents: read
 
 jobs:
