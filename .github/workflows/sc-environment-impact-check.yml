@@ -124,55 +124,9 @@ jobs:
           env.SC_ASSESSOR_SLACK_URL != ''
         env:
           SC_ASSESSOR_SLACK_URL: ${{ secrets.SC_ASSESSOR_SLACK_URL }}
-        run: |
-          REPO_NAME="${{ github.repository }}"
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-          PR_URL="${{ github.server_url }}/${{ github.repository }}/pull/${PR_NUMBER}"
-          IMPACT="${{ steps.impact_analysis.outputs.overall_impact }}"
-
-          case "$IMPACT" in
-            critical) EMOJI=":red_circle:" ;;
-            high)     EMOJI=":large_orange_circle:" ;;
-            medium)   EMOJI=":large_yellow_circle:" ;;
-            low)      EMOJI=":large_green_circle:" ;;
-            *)        EMOJI=":white_circle:" ;;
-          esac
-
-          IMPACT_UPPER=$(echo "$IMPACT" | tr '[:lower:]' '[:upper:]')
-
-          PAYLOAD=$(cat <<EOJSON
-          {
-            "blocks": [
-              {
-                "type": "header",
-                "text": {"type": "plain_text", "text": "SC Environment Impact Assessment"}
-              },
-              {
-                "type": "section",
-                "fields": [
-                  {"type": "mrkdwn", "text": "*Repository:*\n${REPO_NAME}"},
-                  {"type": "mrkdwn", "text": "*Pull Request:*\n<${PR_URL}|#${PR_NUMBER}>"},
-                  {"type": "mrkdwn", "text": "*Overall Impact:*\n${EMOJI} ${IMPACT_UPPER}"}
-                ]
-              },
-              {
-                "type": "actions",
-                "elements": [
-                  {
-                    "type": "button",
-                    "text": {"type": "plain_text", "text": "View Pull Request"},
-                    "url": "${PR_URL}"
-                  }
-                ]
-              }
-            ]
-          }
-          EOJSON
-          )
-
-          curl -sf -X POST -H 'Content-Type: application/json' \
-            -d "$PAYLOAD" \
-            "$SC_ASSESSOR_SLACK_URL"
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          OVERALL_IMPACT: ${{ steps.impact_analysis.outputs.overall_impact }}
+        run: python _sc_check_tools/.github/scripts/send_slack_notification.py
 
       - name: Upload detailed report
         if: always()
