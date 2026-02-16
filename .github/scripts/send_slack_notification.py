@@ -12,6 +12,10 @@ EMOJI = {
     "low": ":large_green_circle:",
 }
 
+# PR statuses that should not trigger Slack notifications.
+# Possible values: draft, open, closed, merged
+SKIP_PR_STATUSES = {"draft"}
+
 
 def build_payload(repo, pr_number, pr_url, impact):
     emoji = EMOJI.get(impact, ":white_circle:")
@@ -50,6 +54,11 @@ def main():
     webhook_url = os.environ.get("SC_ASSESSOR_SLACK_URL")
     if not webhook_url:
         print("SC_ASSESSOR_SLACK_URL not set — skipping", file=sys.stderr)
+        sys.exit(0)
+
+    pr_status = os.environ.get("PR_STATUS", "").strip()
+    if pr_status in SKIP_PR_STATUSES:
+        print(f"PR status is '{pr_status}' — skipping Slack notification")
         sys.exit(0)
 
     repo = os.environ["GITHUB_REPOSITORY"]

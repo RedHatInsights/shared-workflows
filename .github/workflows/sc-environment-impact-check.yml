@@ -125,6 +125,10 @@ jobs:
         env:
           SC_ASSESSOR_SLACK_URL: ${{ secrets.SC_ASSESSOR_SLACK_URL }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_STATUS: >-
+            ${{ github.event.pull_request.draft == true && 'draft'
+              || github.event.pull_request.merged == true && 'merged'
+              || github.event.pull_request.state }}
           OVERALL_IMPACT: ${{ steps.impact_analysis.outputs.overall_impact }}
         run: python _sc_check_tools/.github/scripts/send_slack_notification.py
 
