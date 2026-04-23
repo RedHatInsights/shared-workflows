@@ -14,4 +14,18 @@ Canonical pull request templates for HCC Framework repositories. Each template i
 
 ## How to adopt
 
-Copy the appropriate template into your repository as `.github/PULL_REQUEST_TEMPLATE.md`, or configure [multiple templates](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/creating-a-pull-request-template-for-your-repository#adding-a-pull-request-template) if your repo spans categories.
+> **These templates are reference copies, not active GitHub templates.** Because they live in `pr-templates/` (not `.github/`), GitHub does not apply them automatically. Each team must manually copy the template they need into their own repository.
+
+### Steps
+
+1. Choose the template that matches your repo (see table above).
+2. Copy the file contents into your repository at `.github/PULL_REQUEST_TEMPLATE.md`.
+   ```bash
+   # Example: adopt the frontend template
+   curl -sL https://raw.githubusercontent.com/RedHatInsights/shared-workflows/main/pr-templates/frontend.md \
+     -o .github/PULL_REQUEST_TEMPLATE.md
+   ```
+3. Commit and push. GitHub will pre-fill new PRs with your chosen template.
+4. If your repo spans categories, configure [multiple templates](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/creating-a-pull-request-template-for-your-repository#adding-a-pull-request-template) instead.
+
+> **Future improvement:** A GitHub Actions workflow or sync script could automate distributing template updates to consuming repos. For now, manual copy is required.
