@@ -1,6 +1,27 @@
 # Shared GitHub Actions Workflows
 
-This repository contains a collection of reusable GitHub Actions workflows that can be shared across multiple repositories within our organization.
+This repository contains a collection of reusable GitHub Actions workflows and canonical PR templates shared across HCC (Hybrid Cloud Console) repositories in the [RedHatInsights](https://github.com/RedHatInsights) organization.
+
+## Repository Contents
+
+| Directory | Purpose |
+|-----------|---------|
+| `.github/workflows/` | Reusable GitHub Actions workflows |
+| `.github/scripts/` | Supporting Python scripts for workflows |
+| `pr-templates/` | Canonical PR templates for HCC repos ([details](pr-templates/README.md)) |
+| `docs/` | Documentation and development guidelines |
+
+### Available Workflows
+
+| Workflow | Description | Docs |
+|----------|-------------|------|
+| `stale.yml` | Marks and closes stale issues/PRs | [docs/stale.md](docs/stale.md) |
+| `sc-environment-impact-check.yml` | Assesses PR impact on SC Environment deployments | [SC_CHECK_README.md](.github/scripts/SC_CHECK_README.md) |
+| `example.yml` | Minimal reusable workflow template | — |
+
+### PR Templates
+
+See [pr-templates/README.md](pr-templates/README.md) for which template to use and how to adopt them in your repository.
 
 ## Development
 
@@ -98,3 +119,9 @@ jobs:
       # To pass all secrets
       # inherit: true  # Requires GitHub Actions v2.3.0 or later
 ```
+
+## Further Documentation
+
+- [Workflow Development Guidelines](docs/workflow-guidelines.md) — conventions for creating reusable workflows
+- [PR Template Guidelines](docs/pr-template-guidelines.md) — conventions for creating PR templates
+- [AI Agent Guide](AGENTS.md) — onboarding guide for AI-assisted development
