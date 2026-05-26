@@ -26,7 +26,7 @@ Do NOT modify files under `.github/workflows/`. The bot PAT lacks the `workflow`
 
 Use conventional commits: `type(scope): description`
 
-Scopes: `workflows`, `scripts`, `pr-templates`, `docs`
+Scopes: `workflows`, `scripts`, `pr-templates`, `renovate`, `docs`
 
 Examples:
 - `feat(workflows): add reusable lint workflow`

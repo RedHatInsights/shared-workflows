@@ -31,6 +31,9 @@ pr-templates/         # Canonical PR templates for HCC repos
   frontend.md         # Frontend PR template
   backend.md          # Backend PR template
   infra.md            # Infrastructure PR template
+renovate/             # Shared Renovate preset configurations
+  frontend.json       # Frontend preset (npm bump, group minor/patch, no major)
+  backend.json        # Backend preset (Go modules, Docker, UBI9 pinning)
 ```
 
 ## Domain-Specific Guidelines
