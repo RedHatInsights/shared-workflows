@@ -1,0 +1,28 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Shared Renovate preset for HCC frontend repositories",
+  "extends": ["config:recommended"],
+  "semanticCommits": "enabled",
+  "tekton": {
+    "schedule": ["at any time"]
+  },
+  "packageRules": [
+    {
+      "description": "Use bump strategy for npm dependencies",
+      "matchManagers": ["npm"],
+      "rangeStrategy": "bump"
+    },
+    {
+      "description": "Group npm minor and patch updates into a single PR",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "npm minor and patch dependencies"
+    },
+    {
+      "description": "Disable major updates to avoid breaking changes",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    }
+  ]
+}

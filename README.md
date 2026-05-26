@@ -9,6 +9,7 @@ This repository contains a collection of reusable GitHub Actions workflows and c
 | `.github/workflows/` | Reusable GitHub Actions workflows |
 | `.github/scripts/` | Supporting Python scripts for workflows |
 | `pr-templates/` | Canonical PR templates for HCC repos ([details](pr-templates/README.md)) |
+| `renovate/` | Shared Renovate preset configurations for HCC repos |
 | `docs/` | Documentation and development guidelines |
 
 ### Available Workflows
@@ -22,6 +23,26 @@ This repository contains a collection of reusable GitHub Actions workflows and c
 ### PR Templates
 
 See [pr-templates/README.md](pr-templates/README.md) for which template to use and how to adopt them in your repository.
+
+### Renovate Presets
+
+Shared [Renovate](https://docs.renovatebot.com/) preset configurations that HCC repos can extend:
+
+| Preset | For | Usage |
+|--------|-----|-------|
+| `renovate/frontend.json` | Frontend (npm/React/PF) repos | `"extends": ["github>RedHatInsights/shared-workflows//renovate/frontend"]` |
+| `renovate/backend.json` | Backend (Go) repos | `"extends": ["github>RedHatInsights/shared-workflows//renovate/backend"]` |
+
+To adopt a preset, replace your repo's `renovate.json` with:
+
+```json
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["github>RedHatInsights/shared-workflows//renovate/frontend"]
+}
+```
+
+Repos can add local overrides alongside the preset (e.g. `baseBranches`, extra `packageRules`).
 
 ## Development
 
