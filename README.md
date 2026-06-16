@@ -18,6 +18,7 @@ This repository contains a collection of reusable GitHub Actions workflows and c
 |----------|-------------|------|
 | `stale.yml` | Marks and closes stale issues/PRs | [docs/stale.md](docs/stale.md) |
 | `sc-environment-impact-check.yml` | Assesses PR impact on SC Environment deployments | [SC_CHECK_README.md](.github/scripts/SC_CHECK_README.md) |
+| `delete-stale-branches.yml` | Deletes remote branches older than 90 days | [docs/delete-stale-branches.md](docs/delete-stale-branches.md) |
 | `example.yml` | Minimal reusable workflow template | — |
 
 ### PR Templates
