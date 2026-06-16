@@ -1,0 +1,127 @@
+name: Delete stale branches
+
+on:
+  workflow_call:
+    inputs:
+      days-before-stale:
+        description: "Branches with no commits newer than this many days are deleted"
+        required: false
+        type: number
+        default: 90
+      protected-patterns:
+        description: "Comma-separated branch name patterns to never delete (fnmatch globs)"
+        required: false
+        type: string
+        default: "main,master,release/*,hotfix/*,konflux/references/*"
+      dry-run:
+        description: "Log what would be deleted without deleting"
+        required: false
+        type: boolean
+        default: true
+    secrets:
+      TOKEN:
+        description: "PAT or GitHub App token with permission to delete branches. Falls back to the default GITHUB_TOKEN if not provided."
+        required: false
+
+# Callers must set: permissions: { contents: write }
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    name: Delete stale branches
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.TOKEN || github.token }}
+
+      - name: Delete stale branches
+        env:
+          GH_TOKEN: ${{ secrets.TOKEN || github.token }}
+          DAYS: ${{ inputs.days-before-stale }}
+          PROTECTED: ${{ inputs.protected-patterns }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          default_branch=$(gh repo view --json defaultBranchRef -q '.defaultBranchRef.name')
+          cutoff=$(date -d "-${DAYS} days" +%s 2>/dev/null || date -v-${DAYS}d +%s)
+
+          IFS=',' read -ra patterns <<< "$PROTECTED"
+
+          is_protected() {
+            local branch="$1"
+            if [[ "$branch" == "$default_branch" ]]; then
+              return 0
+            fi
+            for pattern in "${patterns[@]}"; do
+              pattern=$(echo "$pattern" | xargs)
+              # shellcheck disable=SC2254
+              case "$branch" in $pattern) return 0 ;; esac
+            done
+            return 1
+          }
+
+          deleted=0
+          failed=0
+          candidates=0
+          skipped=0
+          protected_count=0
+
+          echo "## Stale Branch Cleanup" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Cutoff**: ${DAYS} days ($(date -d "-${DAYS} days" '+%Y-%m-%d' 2>/dev/null || date -v-${DAYS}d '+%Y-%m-%d'))" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Default branch**: \`${default_branch}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Protected patterns**: \`${PROTECTED}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Dry run**: ${DRY_RUN}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          branch_list=$(git for-each-ref refs/remotes/origin/ \
+            --format='%(refname:lstrip=3) %(committerdate:unix)' \
+            --sort=committerdate | grep -v '^HEAD ' || true)
+
+          while IFS= read -r line; do
+            branch=$(echo "$line" | awk '{print $1}' | sed 's|^origin/||')
+            timestamp=$(echo "$line" | awk '{print $2}')
+
+            [[ -z "$branch" || -z "$timestamp" || ! "$timestamp" =~ ^[0-9]+$ ]] && continue
+
+            if is_protected "$branch"; then
+              protected_count=$((protected_count + 1))
+              continue
+            fi
+
+            if [[ "$timestamp" -gt "$cutoff" ]]; then
+              skipped=$((skipped + 1))
+              continue
+            fi
+
+            age_days=$(( ($(date +%s) - timestamp) / 86400 ))
+
+            if [[ "$DRY_RUN" == "true" ]]; then
+              candidates=$((candidates + 1))
+              echo "Would delete: $branch (${age_days}d old)"
+              echo "- \`${branch}\` — ${age_days} days old" >> "$GITHUB_STEP_SUMMARY"
+            else
+              delete_output=$(git push origin --delete "$branch" 2>&1) && delete_ok=true || delete_ok=false
+              if [[ "$delete_ok" == "true" ]]; then
+                echo "Deleted: $branch (${age_days}d old)"
+                echo "- ~~\`${branch}\`~~ — ${age_days} days old (deleted)" >> "$GITHUB_STEP_SUMMARY"
+                deleted=$((deleted + 1))
+              else
+                failed=$((failed + 1))
+                echo "::warning::Failed to delete branch '$branch': $delete_output"
+                echo "- :x: \`${branch}\` — ${age_days} days old (failed to delete)" >> "$GITHUB_STEP_SUMMARY"
+              fi
+            fi
+          done <<< "$branch_list"
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$DRY_RUN" == "true" ]]; then
+            echo "**Result**: Dry run complete. ${candidates} branch(es) would be deleted, ${skipped} active, ${protected_count} protected." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "**Result**: ${deleted} deleted, ${failed} failed, ${skipped} active, ${protected_count} protected." >> "$GITHUB_STEP_SUMMARY"
+          fi
