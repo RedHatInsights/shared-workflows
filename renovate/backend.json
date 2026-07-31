@@ -4,6 +4,7 @@
   "extends": ["config:recommended"],
   "semanticCommits": "enabled",
   "postUpdateOptions": ["goModTidy"],
+  "minimumReleaseAge": "2 days",
   "tekton": {
     "schedule": ["at any time"]
   },
