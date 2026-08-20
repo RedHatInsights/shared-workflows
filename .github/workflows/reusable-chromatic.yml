@@ -26,12 +26,23 @@ jobs:
       storybookUrl: ${{ steps.chromatic.outputs.storybookUrl }}
       buildUrl: ${{ steps.chromatic.outputs.buildUrl }}
     steps:
-      - name: Checkout Triggering Commit
+      - name: Checkout Base Repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-          persist-credentials: false
+          persist-credentials: true
           fetch-depth: 0
+
+      - name: Fetch triggering commit
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          trap 'git config --unset-all http.https://github.com/.extraheader || true' EXIT
+          if git cat-file -e "${HEAD_SHA}^{commit}" 2>/dev/null; then
+            exit 0
+          fi
+          git fetch --no-tags origin "$HEAD_SHA" \
+            || git fetch origin '+refs/pull/*/head:refs/remotes/pull/*'
+          git rev-parse --verify "${HEAD_SHA}^{commit}"
 
       - name: Download Artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1

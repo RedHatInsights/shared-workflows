@@ -89,5 +89,5 @@ uses: RedHatInsights/shared-workflows/.github/workflows/reusable-chromatic.yml@<
 
 ## How it works
 
-1. **Upload job** — checks out the triggering commit, downloads the Storybook artifact from the triggering workflow run, and publishes to Chromatic. On push events, changes are auto-accepted as the new baseline.
+1. **Upload job** — checks out the consuming repo's default branch (trusted `package.json` / Chromatic config), fetches the triggering commit objects for baseline comparison, downloads the Storybook artifact from the triggering workflow run, and publishes to Chromatic. Fork PR sources are never checked out. On push events, changes are auto-accepted as the new baseline.
 2. **Comment job** — finds the associated PR from `workflow_run.pull_requests`, falling back to `repos.listPullRequestsAssociatedWithCommit` for fork PRs, and posts or updates a comment with Storybook and Chromatic build links.
