@@ -24,6 +24,18 @@
       "matchManagers": ["npm"],
       "matchUpdateTypes": ["major"],
       "enabled": false
+    },
+    {
+      "description": "Use fix commit type for production dependencies (triggers version bump and publish)",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies", "optionalDependencies", "peerDependencies"],
+      "semanticCommitType": "fix"
+    },
+    {
+      "description": "Use chore commit type for devDependencies (no publish needed)",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "semanticCommitType": "chore"
     }
   ]
 }
