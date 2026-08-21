@@ -20,10 +20,9 @@
       "groupName": "npm minor and patch dependencies"
     },
     {
-      "description": "Disable major updates to avoid breaking changes",
+      "description": "Keep major updates as individual, ungrouped PRs",
       "matchManagers": ["npm"],
-      "matchUpdateTypes": ["major"],
-      "enabled": false
+      "matchUpdateTypes": ["major"]
     }
   ]
 }
