@@ -14,10 +14,18 @@
       "rangeStrategy": "bump"
     },
     {
-      "description": "Group npm minor and patch updates into a single PR",
+      "description": "Group npm minor/patch updates for production dependencies",
       "matchManagers": ["npm"],
       "matchUpdateTypes": ["minor", "patch"],
+      "matchDepTypes": ["dependencies", "optionalDependencies", "peerDependencies"],
       "groupName": "npm minor and patch dependencies"
+    },
+    {
+      "description": "Group npm minor/patch updates for devDependencies",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchDepTypes": ["devDependencies"],
+      "groupName": "npm minor and patch devDependencies"
     },
     {
       "description": "Disable major updates to avoid breaking changes",
