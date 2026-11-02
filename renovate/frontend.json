@@ -18,14 +18,16 @@
       "matchManagers": ["npm"],
       "matchUpdateTypes": ["minor", "patch"],
       "matchDepTypes": ["dependencies", "optionalDependencies", "peerDependencies"],
-      "groupName": "npm minor and patch dependencies"
+      "groupName": "npm minor and patch dependencies",
+      "automerge": true
     },
     {
       "description": "Group npm minor/patch updates for devDependencies",
       "matchManagers": ["npm"],
       "matchUpdateTypes": ["minor", "patch"],
       "matchDepTypes": ["devDependencies"],
-      "groupName": "npm minor and patch devDependencies"
+      "groupName": "npm minor and patch devDependencies",
+      "automerge": true
     },
     {
       "description": "Disable major updates to avoid breaking changes",
