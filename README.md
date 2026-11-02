@@ -46,6 +46,10 @@ To adopt a preset, replace your repo's `renovate.json` with:
 
 Repos can add local overrides alongside the preset (e.g. `baseBranches`, extra `packageRules`).
 
+The frontend preset enables automerge for grouped npm minor and patch updates to production and development dependencies. Major npm updates remain disabled, and the two-day minimum release age still applies. The backend preset does not enable automerge.
+
+For GitHub-native automerge, enable **Settings → General → Pull Requests → Allow auto-merge** in each consuming repository. Configure required CI checks in branch protection or rulesets so merges wait for those checks. Renovate must have permission to merge, and required reviews must still be satisfied. Disabling GitHub's auto-merge setting is not an opt-out from Renovate automerge: Renovate can fall back to merging PRs itself.
+
 ## Development
 
 ### 1. Basic Structure
