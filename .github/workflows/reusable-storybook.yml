@@ -12,9 +12,9 @@ on:
         type: string
         default: 'npm run build-storybook'
       test-command:
-        description: 'Command to run Storybook tests'
+        description: 'Self-contained command to run Storybook tests'
         type: string
-        default: 'npm run test-storybook:ci'
+        default: 'npm run test:storybook'
       storybook-dir:
         description: 'Output directory for the Storybook build'
         type: string
@@ -35,6 +35,7 @@ jobs:
   build:
     name: build
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -58,24 +59,21 @@ jobs:
         with:
           name: ${{ inputs.artifact-name }}
           path: ${{ inputs.storybook-dir }}
+          if-no-files-found: error
           retention-days: 3
 
   test:
     name: test
     runs-on: ubuntu-24.04
-    needs: [build]
     if: inputs.run-tests
+    timeout-minutes: 30
+    env:
+      CI: 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
-
-      - name: Download Storybook Artifact
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: ${{ inputs.artifact-name }}
-          path: ${{ inputs.storybook-dir }}
 
       - name: Node setup
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -86,13 +84,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright
-        run: npx playwright install --with-deps
+      - name: Install Playwright Chromium
+        run: npx --no -- playwright install --with-deps chromium
 
       - name: Run Storybook tests
-        run: |
-          npx http-server ${{ inputs.storybook-dir }} --port 6006 --silent &
-          npx wait-on --timeout 60000 http://localhost:6006
-          ${{ inputs.test-command }} -- --url http://localhost:6006
-        env:
-          CI: true
+        run: ${{ inputs.test-command }}
