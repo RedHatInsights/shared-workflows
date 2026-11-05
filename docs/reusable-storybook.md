@@ -1,6 +1,14 @@
-# Reusable Storybook Workflow
+# Legacy Reusable Storybook Workflow
 
-Builds Storybook and optionally runs interaction tests via Playwright.
+For Storybook 10 + Vite, use the [Vitest workflow](reusable-storybook-vitest.md).
+That is the target for new and migrating consumers; this legacy workflow remains
+unchanged temporarily so existing callers are not silently broken. Retire it only
+after its callers have migrated, not as a second long-term runner standard.
+
+This workflow builds Storybook and optionally runs the legacy
+`@storybook/test-runner` against a served build. Overriding `test-command` with a
+Vitest command is **not** a migration: the workflow still starts a static server
+and appends `--url`. Use the dedicated Vitest workflow instead.
 
 ## Usage
 
@@ -74,3 +82,8 @@ jobs:
 ## Pairing with Chromatic
 
 This workflow produces an artifact named `storybook-static` by default (override with `artifact-name`) consumed by the [reusable Chromatic workflow](reusable-chromatic.md). Chromatic's `artifact-name` must match this workflow's `artifact-name`. Changing `storybook-dir` alone does not require a Chromatic change.
+
+Migration must preserve the complete existing publication flow, including the
+Chromatic upload of the correct PR revision and the preview link posted back to
+the PR. Keeping an artifact alone is insufficient. Follow the
+[Vitest migration and publication checklist](reusable-storybook-vitest.md#chromatic-publication-and-pr-links-are-mandatory).
