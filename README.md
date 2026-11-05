@@ -18,8 +18,7 @@ This repository contains a collection of reusable GitHub Actions workflows and c
 |----------|-------------|------|
 | `stale.yml` | Marks and closes stale issues/PRs | [docs/stale.md](docs/stale.md) |
 | `sc-environment-impact-check.yml` | Assesses PR impact on SC Environment deployments | [SC_CHECK_README.md](.github/scripts/SC_CHECK_README.md) |
-| `reusable-storybook-vitest.yml` | Storybook 10/Vite: independent build and Vitest browser tests, preserving Chromatic publication and PR links | [docs/reusable-storybook-vitest.md](docs/reusable-storybook-vitest.md) |
-| `reusable-storybook.yml` | Legacy served-Storybook test runner; retained only while existing callers migrate | [docs/reusable-storybook.md](docs/reusable-storybook.md) |
+| `reusable-storybook.yml` | Builds Storybook and runs tests via a self-contained command or the legacy served-build setup | [docs/reusable-storybook.md](docs/reusable-storybook.md) |
 | `reusable-chromatic.yml` | Uploads a Storybook artifact to Chromatic and comments on the PR | [docs/reusable-chromatic.md](docs/reusable-chromatic.md) |
 | `example.yml` | Minimal reusable workflow template | — |
 

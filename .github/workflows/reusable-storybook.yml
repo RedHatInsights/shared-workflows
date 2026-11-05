@@ -12,9 +12,13 @@ on:
         type: string
         default: 'npm run build-storybook'
       test-command:
-        description: 'Command to run Storybook tests'
+        description: 'Test command; receives --url only when serve-storybook is enabled'
         type: string
         default: 'npm run test-storybook:ci'
+      serve-storybook:
+        description: 'Serve the build and append --url; disable for self-contained test commands'
+        type: boolean
+        default: true
       storybook-dir:
         description: 'Output directory for the Storybook build'
         type: string
@@ -35,6 +39,7 @@ jobs:
   build:
     name: build
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -58,13 +63,14 @@ jobs:
         with:
           name: ${{ inputs.artifact-name }}
           path: ${{ inputs.storybook-dir }}
+          if-no-files-found: error
           retention-days: 3
 
   test:
     name: test
     runs-on: ubuntu-24.04
     needs: [build]
-    if: inputs.run-tests
+    if: inputs.run-tests && inputs.serve-storybook
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -96,3 +102,31 @@ jobs:
           ${{ inputs.test-command }} -- --url http://localhost:6006
         env:
           CI: true
+
+  test-script:
+    name: test-script
+    runs-on: ubuntu-24.04
+    if: inputs.run-tests && !inputs.serve-storybook
+    timeout-minutes: 30
+    env:
+      CI: 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Node setup
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Run Storybook tests
+        run: ${{ inputs.test-command }}
