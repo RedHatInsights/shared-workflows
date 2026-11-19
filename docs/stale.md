@@ -1,7 +1,7 @@
 # Stale
 
-Marks issues and PRs stale after a period of inactivity and closes them after a
-further grace period.
+Marks inactive issues and PRs stale, then closes them after a further grace
+period.
 
 ## Usage
 
@@ -19,21 +19,14 @@ permissions:
 
 jobs:
   stale:
-    uses: RedHatInsights/shared-workflows/.github/workflows/stale.yml@<commit-sha>
+    uses: RedHatInsights/shared-workflows/.github/workflows/stale.yml@<commit-sha> # master
 ```
 
-## Pinning
-
-Reference this workflow by full commit SHA, not `@master`, so a change to
-`shared-workflows` cannot alter behaviour in your repository without a PR. The
-`actions/stale` step inside this workflow is pinned to a commit SHA for the same
-reason, and Renovate opens PRs to keep that pin current.
-
-## Permissions
-
-Reusable workflows do not inherit the caller's `permissions:` block, so the
-calling workflow must grant them. The stale action needs `issues: write` and
-`pull-requests: write`.
+Pin to a full commit SHA so changes to `shared-workflows` cannot affect your
+repo without a PR. The trailing `# master` tells Renovate which branch the SHA
+tracks — without it (bare SHA or prose comment) the pin is ignored and silently
+goes stale. Once `shared-workflows` publishes version tags, replace `# master`
+with `# vX.Y.Z`; pins inside this workflow are maintained by `shared-workflows`' own Renovate run.
 
 ## Inputs
 
