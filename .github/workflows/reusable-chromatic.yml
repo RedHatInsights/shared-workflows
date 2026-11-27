@@ -54,7 +54,7 @@ jobs:
 
       - name: Publish to Chromatic
         id: chromatic
-        uses: chromaui/action@534eebfc19023579541d106f7b61d5ad70ed65c7 # v18.5.0
+        uses: chromaui/action@25d2d37fcbe164dfbf5479a432fbd73d03bae733 # v18.15.2
         with:
           projectToken: ${{ secrets.chromatic-project-token }}
           storybookBuildDir: storybook-static
